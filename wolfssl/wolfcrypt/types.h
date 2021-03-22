@@ -51,6 +51,12 @@ decouple library dependencies with standard string, memory and so on.
     typedef struct WOLFSSL_CRYPTO_EX_DATA {
         void* ex_data[MAX_EX_DATA];
     } WOLFSSL_CRYPTO_EX_DATA;
+    typedef int  (WOLFSSL_CRYPTO_EX_new)(void* p, void* ptr,
+        WOLFSSL_CRYPTO_EX_DATA* a, int idx, long argValue, void* arg);
+    typedef int  (WOLFSSL_CRYPTO_EX_dup)(WOLFSSL_CRYPTO_EX_DATA* out,
+        WOLFSSL_CRYPTO_EX_DATA* in, void* inPtr, int idx, long argV, void* arg);
+    typedef void (WOLFSSL_CRYPTO_EX_free)(void* p, void* ptr,
+        WOLFSSL_CRYPTO_EX_DATA* a, int idx, long argValue, void* arg);
     #endif
 
     #if defined(WORDS_BIGENDIAN)

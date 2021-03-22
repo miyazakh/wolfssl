@@ -16177,8 +16177,11 @@ int wolfSSL_set_compression(WOLFSSL* ssl)
         return WOLFSSL_SUCCESS;
     }
 
-
+#if defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER >= 0x10101000L)
+    WOLFSSL_BIO* wolfSSL_BIO_new(const WOLFSSL_BIO_METHOD* method)
+#else
     WOLFSSL_BIO* wolfSSL_BIO_new(WOLFSSL_BIO_METHOD* method)
+#endif
     {
         WOLFSSL_BIO* bio;
 
@@ -16193,7 +16196,7 @@ int wolfSSL_set_compression(WOLFSSL* ssl)
         if (bio) {
             XMEMSET(bio, 0, sizeof(WOLFSSL_BIO));
             bio->type = (byte)method->type;
-            bio->method = method;
+            bio->method = (WOLFSSL_BIO_METHOD*)method;
             bio->shutdown = BIO_CLOSE; /* default to close things */
             bio->num = -1; /* Default to invalid socket */
             bio->init = 1;
@@ -22027,10 +22030,18 @@ const char* wolfSSL_lib_version(void)
 }
 
 #ifdef OPENSSL_EXTRA
+#ifdef WOLFSSL_QT
+const char* wolfSSL_OpenSSL_version(int a)
+{
+    (void)a;
+    return "wolfSSL " LIBWOLFSSL_VERSION_STRING;
+}
+#else
 const char* wolfSSL_OpenSSL_version(void)
 {
     return "wolfSSL " LIBWOLFSSL_VERSION_STRING;
 }
+#endif /* WOLFSSL_QT */
 #endif
 
 
@@ -23337,7 +23348,19 @@ int wolfSSL_X509_cmp(const WOLFSSL_X509 *a, const WOLFSSL_X509 *b)
 
 #ifndef NO_CERTS
 #if defined(OPENSSL_EXTRA) || defined(OPENSSL_EXTRA_X509_SMALL)
-
+#if defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER >= 0x10101000L)
+    const unsigned char* wolfSSL_ASN1_STRING_get0_data(
+                                            const WOLFSSL_ASN1_STRING* asn)
+    {
+        WOLFSSL_ENTER("wolfSSL_ASN1_STRING_get0_data");
+        
+        if (asn) {
+            return (const unsigned char*)asn->data;
+        } else {
+            return NULL;
+        }
+    }
+#endif
     unsigned char* wolfSSL_ASN1_STRING_data(WOLFSSL_ASN1_STRING* asn)
     {
         WOLFSSL_ENTER("wolfSSL_ASN1_STRING_data");
@@ -36263,6 +36286,22 @@ const char* wolfSSL_EC_curve_nid2nist(int nid)
     return NULL;
 }
 
+/**
+ * return nist curve id
+ * @param name nist curve name
+ * @return nist curve id when find, 0 when not find
+ */
+int wolfSSL_EC_curve_nist2nid(const char* name)
+{
+    const WOLF_EC_NIST_NAME* nist_name;
+    for (nist_name = kNistCurves; nist_name->name != NULL; nist_name++) {
+        if (XSTRCMP(nist_name->name, name) == 0) {
+            return nist_name->nid;
+        }
+    }
+    return 0;
+}
+
 #if defined(WOLFSSL_TLS13) && defined(HAVE_SUPPORTED_CURVES)
 static int populate_groups(int* groups, int max_count, char *list)
 {
@@ -48799,7 +48838,11 @@ int wolfSSL_SSL_do_handshake(WOLFSSL *s)
 #endif
 }
 
+#if defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER >= 0x10101000L)
+int wolfSSL_SSL_in_init(const WOLFSSL *ssl)
+#else
 int wolfSSL_SSL_in_init(WOLFSSL *ssl)
+#endif
 {
     WOLFSSL_ENTER("SSL_in_init");
 
@@ -55220,6 +55263,245 @@ int wolfSSL_CTX_set_ecdh_auto(WOLFSSL_CTX* ctx, int onoff)
     (void)onoff;
     return WOLFSSL_SUCCESS;
 }
+
+
+/**
+ * Allocate WOLFSSL_CONF_CTX instance
+ * @return pointer to WOLFSSL_CONF_CTX structure on success and NULL on fail
+ */
+WOLFSSL_CONF_CTX* wolfSSL_CONF_CTX_new(void)
+{
+    WOLFSSL_CONF_CTX* cctx;
+    
+    WOLFSSL_ENTER("wolfSSL_CONF_CTX_new");
+    
+    cctx = (WOLFSSL_CONF_CTX*)XMALLOC(sizeof(WOLFSSL_CONF_CTX), NULL, 
+                                                    DYNAMIC_TYPE_OPENSSL);
+    if (!cctx) {
+        WOLFSSL_MSG("malloc error");
+        return NULL;
+    }
+    XMEMSET(cctx, 0, sizeof(WOLFSSL_CONF_CTX));
+    
+    return cctx;
+}
+/**
+ * Release WOLFSSL_CONF_CTX instance
+ * @param cctx a pointer to WOLFSSL_CONF_CTX structure to be freed
+ * @return none
+ */
+void wolfSSL_CONF_CTX_free(WOLFSSL_CONF_CTX* cctx)
+{
+    WOLFSSL_ENTER("wolfSSL_CONF_CTX_free");
+    
+    if (cctx) {
+        XFREE(cctx, NULL, DYNAMIC_TYPE_OPENSSL);
+    }
+}
+/**
+ * Release WOLFSSL_CONF_CTX instance
+ * @param cctx a pointer to WOLFSSL_CONF_CTX structure to set a pointer
+ *             to WOLFSSL_CTX
+ * @param ctx  a pointer to WOLFSSL_CTX structure to be set
+ * @return none
+ */
+void wolfSSL_CONF_CTX_set_ssl_ctx(WOLFSSL_CONF_CTX* cctx, WOLFSSL_CTX *ctx)
+{
+    WOLFSSL_ENTER("wolfSSL_CONF_CTX_set_ssl_ctx");
+    
+    //sanity check
+    if (cctx == NULL) {
+        WOLFSSL_MSG("cctx is null");
+        return;
+    }
+    
+    if (ctx != NULL) {
+        cctx->ctx = ctx;
+    } else {
+        cctx->ctx = NULL;
+    }
+}
+/**
+ * set flag value into WOLFSSL_CONF_CTX
+ * @param cctx  a pointer to WOLFSSL_CONF_CTX structure to be set
+ * @param flags falg value to be OR'sd
+ * @return OR'd flag value, otherwise 0
+ */
+unsigned int wolfSSL_CONF_CTX_set_flags(WOLFSSL_CONF_CTX* cctx, unsigned int flags)
+{
+    //sanity check
+    if (cctx == NULL) return 0;
+    
+    cctx->flags |= flags;
+    return cctx->flags;
+}
+#ifndef NO_WOLFSSL_STUB
+/**
+ * finish configuration command operation
+ * @param cctx  a pointer to WOLFSSL_CONF_CTX structure to be set
+ * @return WOLFSSL_FAILURE for now
+ */
+int wolfSSL_CONF_CTX_finish(WOLFSSL_CONF_CTX* cctx)
+{
+    WOLFSSL_STUB("wolfSSL_CONF_CTX_finish");
+    (void)cctx;
+    return WOLFSSL_FAILURE;
+}
+/**
+ * send configuration command
+ * @param cctx  a pointer to WOLFSSL_CONF_CTX structure
+ * @param cmd   configuration command
+ * @param value arguments for cmd
+ * @return WOLFSSL_FAILURE for now
+ */
+int wolfSSL_CONF_cmd(WOLFSSL_CONF_CTX* cctx, const char* cmd, const char* value)
+{
+    WOLFSSL_STUB("wolfSSL_CONF_cmd");
+    (void)cctx;
+    (void)cmd;
+    (void)value;
+    return WOLFSSL_FAILURE;
+}
+
+/**
+ * validate the algorithm parameters of the key-pair
+ * @param ctx  a pointer to WOLFSSL_EVP_PKEY_CTX structure
+ * @return WOLFSSL_FAILURE for now
+ */
+int EVP_PKEY_param_check(WOLFSSL_EVP_PKEY_CTX* ctx)
+{
+    WOLFSSL_STUB("EVP_PKEY_param_check");
+    (void)ctx;
+    return WOLFSSL_FAILURE;
+}
+/**
+ * set security level(wolfSSL doesn't suppor security level)
+ * @param ctx  a pointer to WOLFSSL_EVP_PKEY_CTX structure
+ * @param level security level
+ * @return WOLFSSL_FAILURE for now
+ */
+void wolfSSL_set_security_level(WOLFSSL_CTX* ctx, int level)
+{
+    WOLFSSL_STUB("wolfSSL_set_security_level");
+    (void)ctx;
+    (void)level;
+}
+/**
+ * get security level(wolfSSL doesn't suppor security level)
+ * @param ctx  a pointer to WOLFSSL_EVP_PKEY_CTX structure
+ * @return 0(level 0) for now
+ */
+int wolfSSL_get_security_level(const WOLFSSL_CTX* ctx)
+{
+    WOLFSSL_STUB("wolfSSL_get_security_level");
+    (void)ctx;
+    return 0;
+}
+/**
+ * get call back function for psk session use
+ * @param ssl  a pointer to WOLFSSL structure
+ * @return none
+ */
+void wolfSSL_set_psk_use_session_callback(WOLFSSL* ssl, 
+                                               wolfSSL_psk_use_session_cb_func cb)
+{
+    WOLFSSL_STUB("wolfSSL_set_psk_use_session_callback");
+    (void)ssl;
+    (void)cb;
+}
+/**
+ * get security level(wolfSSL doesn't suppor security level)
+ * @param s  a pointer to WOLFSSL_SESSION structure
+ * @return WOLFSSL_FAILURE for now
+ */
+int wolfSSL_SESSION_is_resumable(const WOLFSSL_SESSION *s)
+{
+    WOLFSSL_STUB("wolfSSL_SESSION_is_resumable");
+    (void)s;
+    return WOLFSSL_FAILURE;
+}
+/**
+ * 
+ * @param s  a pointer to WOLFSSL_SESSION structure
+ * @return WOLFSSL_FAILURE for now
+ */
+#ifdef HAVE_EX_DATA
+int wolfSSL_CRYPTO_get_ex_new_index(int class_index, long argl, void *argp,
+                                           WOLFSSL_CRYPTO_EX_new* new_func,
+                                           WOLFSSL_CRYPTO_EX_dup* dup_func,
+                                           WOLFSSL_CRYPTO_EX_free* free_func)
+{
+    WOLFSSL_STUB("wolfSSL_CRYPTO_get_ex_new_index");
+    (void)class_index;
+    (void)argl;
+    (void)argp;
+    (void)new_func;
+    (void)dup_func;
+    (void)free_func;
+    return WOLFSSL_FAILURE;
+}
+#endif
+/**
+ * 
+ * @param store a pointer to WOLFSSL_X509_STORE structure
+ * @param index 
+ * @return NULL for now
+ */
+void* wolfSSL_X509_STORE_get_ex_data(WOLFSSL_X509_STORE* store, int index)
+{
+     WOLFSSL_STUB("wolfSSL_X509_STORE_get_ex_data");
+     (void)store;
+     (void)index;
+     return NULL;
+}
+/**
+ * 
+ * @param store a pointer to WOLFSSL_X509_STORE structure
+ * @param idx   
+ * @param data  
+ * @return WOLFSSL_FAILURE for now
+ */
+int wolfSSL_X509_STORE_set_ex_data(WOLFSSL_X509_STORE* store, int idx, void *data)
+{
+    (void)store;
+    (void)idx;
+    (void)data;
+    return WOLFSSL_FAILURE;
+}
+/**
+ * 
+ * @param store a pointer to WOLFSSL_X509_STORE structure
+ * @param idx   
+ * @param data  
+ * @return WOLFSSL_FAILURE for now
+ */
+int wolfSSL_DH_get0_pqg(const WOLFSSL_DH *dh, const WOLFSSL_BIGNUM **p, 
+                    const WOLFSSL_BIGNUM **q, const WOLFSSL_BIGNUM **g)
+{
+    (void)dh;
+    (void)p;
+    (void)q;
+    (void)g;
+    return WOLFSSL_FAILURE;
+}
+
+
+#endif /* NO_WOLFSSL_STUB */
+#ifdef WOLFSSL_QT_V515
+void wolfSSL_CRYPTO_free(void *str, const char *file, int line)
+{
+    (void)file;
+    (void)line;
+    XFREE(str, 0, DYNAMIC_TYPE_TMP_BUFFER);
+}
+
+void *wolfSSL_CRYPTO_malloc(size_t num, const char *file, int line)
+{
+    (void)file;
+    (void)line;
+    return XMALLOC(num, 0, DYNAMIC_TYPE_TMP_BUFFER);
+}
+#endif /* WOLFSSL_QT_V515 */
 #endif /* OPENSSL_EXTRA */
 
 #endif /* !WOLFCRYPT_ONLY */
