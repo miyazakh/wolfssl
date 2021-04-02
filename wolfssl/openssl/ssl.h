@@ -1414,15 +1414,6 @@ typedef WOLFSSL_CONF_CTX SSL_CONF_CTX;
 
 #define SSL_set_psk_use_session_callback    wolfSSL_set_psk_use_session_callback
 #define SSL_SESSION_is_resumable    wolfSSL_SESSION_is_resumable
-typedef WOLFSSL_CONF_CTX SSL_CONF_CTX;
-
-#define SSL_CONF_CTX_new                wolfSSL_CONF_CTX_new
-#define SSL_CONF_CTX_free               wolfSSL_CONF_CTX_free
-#define SSL_CONF_CTX_set_ssl_ctx        wolfSSL_CONF_CTX_set_ssl_ctx
-#define SSL_CONF_CTX_set_flags          wolfSSL_CONF_CTX_set_flags
-#define SSL_CONF_CTX_finish             wolfSSL_CONF_CTX_finish
-#define SSL_CONF_cmd                    wolfSSL_CONF_cmd
-
 #ifdef __cplusplus
     } /* extern "C" */
 #endif

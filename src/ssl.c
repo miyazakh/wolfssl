@@ -54350,7 +54350,6 @@ int wolfSSL_CTX_get_security_level(const WOLFSSL_CTX* ctx)
     return 0;
 }
 
-
 /**
  * Determine whether a WOLFSSL_SESSION object can be used for resumption
  * @param s  a pointer to WOLFSSL_SESSION structure
