@@ -16177,7 +16177,7 @@ int wolfSSL_set_compression(WOLFSSL* ssl)
         return WOLFSSL_SUCCESS;
     }
 
-#if defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER >= 0x10101000L)
+#if defined(WOLFSSL_QT)
     WOLFSSL_BIO* wolfSSL_BIO_new(const WOLFSSL_BIO_METHOD* method)
 #else
     WOLFSSL_BIO* wolfSSL_BIO_new(WOLFSSL_BIO_METHOD* method)
@@ -23348,7 +23348,7 @@ int wolfSSL_X509_cmp(const WOLFSSL_X509 *a, const WOLFSSL_X509 *b)
 
 #ifndef NO_CERTS
 #if defined(OPENSSL_EXTRA) || defined(OPENSSL_EXTRA_X509_SMALL)
-#if defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER >= 0x10101000L)
+#if defined(WOLFSSL_QT)
     const unsigned char* wolfSSL_ASN1_STRING_get0_data(
                                             const WOLFSSL_ASN1_STRING* asn)
     {
@@ -36280,7 +36280,7 @@ const char* wolfSSL_EC_curve_nid2nist(int nid)
     const WOLF_EC_NIST_NAME* nist_name;
     for (nist_name = kNistCurves; nist_name->name != NULL; nist_name++) {
         if (nist_name->nid == nid) {
-            return kNistCurves->name;
+            return nist_name->name;
         }
     }
     return NULL;
@@ -48838,7 +48838,7 @@ int wolfSSL_SSL_do_handshake(WOLFSSL *s)
 #endif
 }
 
-#if defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER >= 0x10101000L)
+#if defined(WOLFSSL_QT)
 int wolfSSL_SSL_in_init(const WOLFSSL *ssl)
 #else
 int wolfSSL_SSL_in_init(WOLFSSL *ssl)
@@ -55380,7 +55380,7 @@ int EVP_PKEY_param_check(WOLFSSL_EVP_PKEY_CTX* ctx)
  * @param level security level
  * @return WOLFSSL_FAILURE for now
  */
-void wolfSSL_set_security_level(WOLFSSL_CTX* ctx, int level)
+void wolfSSL_CTX_set_security_level(WOLFSSL_CTX* ctx, int level)
 {
     WOLFSSL_STUB("wolfSSL_set_security_level");
     (void)ctx;
@@ -55391,7 +55391,7 @@ void wolfSSL_set_security_level(WOLFSSL_CTX* ctx, int level)
  * @param ctx  a pointer to WOLFSSL_EVP_PKEY_CTX structure
  * @return 0(level 0) for now
  */
-int wolfSSL_get_security_level(const WOLFSSL_CTX* ctx)
+int wolfSSL_CTX_get_security_level(const WOLFSSL_CTX* ctx)
 {
     WOLFSSL_STUB("wolfSSL_get_security_level");
     (void)ctx;
@@ -55410,15 +55410,15 @@ void wolfSSL_set_psk_use_session_callback(WOLFSSL* ssl,
     (void)cb;
 }
 /**
- * get security level(wolfSSL doesn't suppor security level)
+ * Determine whether an WOLFSSL_SESSION object can be used for resumption
  * @param s  a pointer to WOLFSSL_SESSION structure
- * @return WOLFSSL_FAILURE for now
+ * @return always 0 cannot
  */
 int wolfSSL_SESSION_is_resumable(const WOLFSSL_SESSION *s)
 {
     WOLFSSL_STUB("wolfSSL_SESSION_is_resumable");
     (void)s;
-    return WOLFSSL_FAILURE;
+    return 0;
 }
 /**
  * 
@@ -55487,7 +55487,7 @@ int wolfSSL_DH_get0_pqg(const WOLFSSL_DH *dh, const WOLFSSL_BIGNUM **p,
 
 
 #endif /* NO_WOLFSSL_STUB */
-#ifdef WOLFSSL_QT_V515
+#ifdef WOLFSSL_QT
 void wolfSSL_CRYPTO_free(void *str, const char *file, int line)
 {
     (void)file;
@@ -55501,7 +55501,7 @@ void *wolfSSL_CRYPTO_malloc(size_t num, const char *file, int line)
     (void)line;
     return XMALLOC(num, 0, DYNAMIC_TYPE_TMP_BUFFER);
 }
-#endif /* WOLFSSL_QT_V515 */
+#endif /* WOLFSSL_QT */
 #endif /* OPENSSL_EXTRA */
 
 #endif /* !WOLFCRYPT_ONLY */

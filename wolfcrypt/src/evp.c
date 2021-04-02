@@ -1366,14 +1366,14 @@ int wolfSSL_EVP_add_digest(const WOLFSSL_EVP_MD *digest)
  *
  * return WOLFSSL_SUCCESS on success
  */
-#ifdef OPENSSL_EXTRA
+#ifdef WOLFSSL_QT
 void wolfSSL_EVP_PKEY_CTX_free(WOLFSSL_EVP_PKEY_CTX *ctx)
 #else
 int wolfSSL_EVP_PKEY_CTX_free(WOLFSSL_EVP_PKEY_CTX *ctx)
 #endif
 {
     if (ctx == NULL)
-#ifdef OPENSSL_EXTRA
+#ifdef WOLFSSL_QT
      return;
 #else
      return 0;
@@ -1384,7 +1384,7 @@ int wolfSSL_EVP_PKEY_CTX_free(WOLFSSL_EVP_PKEY_CTX *ctx)
     if (ctx->peerKey != NULL)
         wolfSSL_EVP_PKEY_free(ctx->peerKey);
     XFREE(ctx, NULL, DYNAMIC_TYPE_PUBLIC_KEY);
-#ifndef OPENSSL_EXTRA
+#ifndef WOLFSSL_QT
     return WOLFSSL_SUCCESS;
 #endif
 }

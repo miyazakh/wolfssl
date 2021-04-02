@@ -137,7 +137,7 @@ typedef WOLFSSL_X509_VERIFY_PARAM X509_VERIFY_PARAM;
 #define CONF_get1_default_config_file   wolfSSL_CONF_get1_default_config_file
 typedef STACK_OF(ACCESS_DESCRIPTION) AUTHORITY_INFO_ACCESS;
 
-#ifdef WOLFSSL_QT_V515
+#ifdef WOLFSSL_QT
 #define CRYPTO_free                     wolfSSL_CRYPTO_free
 #define CRYPTO_malloc                   wolfSSL_CRYPTO_malloc
 #else
@@ -311,8 +311,8 @@ typedef STACK_OF(ACCESS_DESCRIPTION) AUTHORITY_INFO_ACCESS;
 #define SSL_CTX_set_ciphersuites        wolfSSL_CTX_set_cipher_list
 #define SSL_set_cipher_list             wolfSSL_set_cipher_list
 /* wolfSSL does not support security levels */
-#define SSL_CTX_set_security_level      wolfSSL_set_security_level
-#define SSL_CTX_get_security_level      wolfSSL_get_security_level
+#define SSL_CTX_set_security_level      wolfSSL_CTX_set_security_level
+#define SSL_CTX_get_security_level      wolfSSL_CTX_get_security_level
 /* wolfSSL does not support exporting keying material */
 #define SSL_export_keying_material      wolfSSL_export_keying_material
 
@@ -774,7 +774,7 @@ wolfSSL_X509_STORE_set_verify_cb((WOLFSSL_X509_STORE *)(s), (WOLFSSL_X509_STORE_
 #define ASN1_STRING_free                wolfSSL_ASN1_STRING_free
 #define ASN1_STRING_cmp                 wolfSSL_ASN1_STRING_cmp
 #define ASN1_STRING_data                wolfSSL_ASN1_STRING_data
-#if defined(OPENSSL_VERSION_NUMBER) && (OPENSSL_VERSION_NUMBER >= 0x10101000L)
+#if defined(WOLFSSL_QT)
 #define ASN1_STRING_get0_data           wolfSSL_ASN1_STRING_get0_data
 #else
 #define ASN1_STRING_get0_data           wolfSSL_ASN1_STRING_data
