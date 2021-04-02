@@ -600,9 +600,6 @@ typedef WOLFSSL_X509_NAME_ENTRY X509_NAME_ENTRY;
 #define X509_STORE_CTX_get0_cert        wolfSSL_X509_STORE_CTX_get0_cert
 #define X509_STORE_CTX_trusted_stack    wolfSSL_X509_STORE_CTX_trusted_stack
 
-#define X509_STORE_set_ex_data          wolfSSL_X509_STORE_set_ex_data
-#define X509_STORE_get_ex_data          wolfSSL_X509_STORE_get_ex_data
-
 #define X509_STORE_set_verify_cb(s, c) \
 wolfSSL_X509_STORE_set_verify_cb((WOLFSSL_X509_STORE *)(s), (WOLFSSL_X509_STORE_CTX_verify_cb)(c))
 #define X509_STORE_set_verify_cb_func(s, c) \
@@ -617,6 +614,8 @@ wolfSSL_X509_STORE_set_verify_cb((WOLFSSL_X509_STORE *)(s), (WOLFSSL_X509_STORE_
 #define X509_STORE_set_flags            wolfSSL_X509_STORE_set_flags
 #define X509_STORE_get1_certs           wolfSSL_X509_STORE_get1_certs
 #define X509_STORE_get_by_subject       wolfSSL_X509_STORE_get_by_subject
+#define X509_STORE_set_ex_data          wolfSSL_X509_STORE_set_ex_data
+#define X509_STORE_get_ex_data          wolfSSL_X509_STORE_get_ex_data
 #define X509_STORE_CTX_get1_issuer      wolfSSL_X509_STORE_CTX_get1_issuer
 #define X509_STORE_CTX_set_time         wolfSSL_X509_STORE_CTX_set_time
 #define X509_VERIFY_PARAM_new           wolfSSL_X509_VERIFY_PARAM_new

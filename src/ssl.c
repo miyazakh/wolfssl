@@ -26040,7 +26040,47 @@ void wolfSSL_X509_STORE_free(WOLFSSL_X509_STORE* store)
         XFREE(store, NULL, DYNAMIC_TYPE_X509_STORE);
     }
 }
-
+/**
+ * Get ex_data in WOLFSSL_STORE at given index
+ * @param store a pointer to WOLFSSL_X509_STORE structure
+ * @param idx   Index of ex_data to get data from 
+ * @return void pointer to ex_data on success or NLL on failure
+ */
+void* wolfSSL_X509_STORE_get_ex_data(WOLFSSL_X509_STORE* store, int idx)
+{
+    WOLFSSL_ENTER("wolfSSL_X509_STORE_get_ex_data");
+#ifdef HAVE_EX_DATA
+    if (store != NULL && idx < MAX_EX_DATA && idx >= 0) {
+        return wolfSSL_CRYPTO_get_ex_data(&store->ex_data, idx);
+    }
+#else
+    (void)store;
+    (void)idx;
+#endif
+    return NULL;
+}
+/**
+ * Set ex_data for WOLFSSL_STORE
+ * @param store a pointer to WOLFSSL_X509_STORE structure
+ * @param idx   Index of ex data to set
+ * @param data  Data to set in ex data
+ * @return WOLFSSL_SUCCESS on success or WOLFSSL_FAILURE on failure
+ */
+int wolfSSL_X509_STORE_set_ex_data(WOLFSSL_X509_STORE* store, int idx, 
+                                                                     void *data)
+{
+    WOLFSSL_ENTER("wolfSSL_X509_STORE_set_ex_data");
+#ifdef HAVE_EX_DATA
+    if (store != NULL && idx < MAX_EX_DATA) {
+        return wolfSSL_CRYPTO_set_ex_data(&store->ex_data, idx, data);
+    }
+#else
+    (void)store;
+    (void)idx;
+    (void)data;
+#endif
+    return WOLFSSL_FAILURE;
+}
 #endif /* OPENSSL_EXTRA || WOLFSSL_WPAS_SMALL */
 
 #ifdef OPENSSL_EXTRA
@@ -55441,33 +55481,7 @@ int wolfSSL_CRYPTO_get_ex_new_index(int class_index, long argl, void *argp,
     return WOLFSSL_FAILURE;
 }
 #endif
-/**
- * 
- * @param store a pointer to WOLFSSL_X509_STORE structure
- * @param index 
- * @return NULL for now
- */
-void* wolfSSL_X509_STORE_get_ex_data(WOLFSSL_X509_STORE* store, int index)
-{
-     WOLFSSL_STUB("wolfSSL_X509_STORE_get_ex_data");
-     (void)store;
-     (void)index;
-     return NULL;
-}
-/**
- * 
- * @param store a pointer to WOLFSSL_X509_STORE structure
- * @param idx   
- * @param data  
- * @return WOLFSSL_FAILURE for now
- */
-int wolfSSL_X509_STORE_set_ex_data(WOLFSSL_X509_STORE* store, int idx, void *data)
-{
-    (void)store;
-    (void)idx;
-    (void)data;
-    return WOLFSSL_FAILURE;
-}
+
 /**
  * 
  * @param store a pointer to WOLFSSL_X509_STORE structure
