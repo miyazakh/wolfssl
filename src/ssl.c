@@ -55319,8 +55319,13 @@ int wolfSSL_CONF_cmd(WOLFSSL_CONF_CTX* cctx, const char* cmd, const char* value)
 }
 
 /**
- * 
- * @param s  a pointer to WOLFSSL_SESSION structure
+ * returns a new idex or -1 on failure
+ * @param class index one of CRYPTO_EX_INDEX_xxx
+ * @param argp  parameters to be saved
+ * @param argl  parameters to be saved
+ * @param new_func a pointer to WOLFSSL_CRYPTO_EX_new
+ * @param dup_func a pointer to WOLFSSL_CRYPTO_EX_dup
+ * @param free_func a pointer to WOLFSSL_CRYPTO_EX_free
  * @return WOLFSSL_FAILURE for now
  */
 #ifdef HAVE_EX_DATA
@@ -55341,13 +55346,13 @@ int wolfSSL_CRYPTO_get_ex_new_index(int class_index, long argl, void *argp,
 #endif
 
 /**
- * 
- * @param store a pointer to WOLFSSL_X509_STORE structure
- * @param idx   
- * @param data  
- * @return WOLFSSL_FAILURE for now
+ * retrive p, q and g parameter
+ * @param dh a pointer to WOLFSSL_DH
+ * @param p  a pointer to WOLFSSL_BIGNUM to be obtained dh
+ * @param q  a pointer to WOLFSSL_BIGNUM to be obtained dh
+ * @param q  a pointer to WOLFSSL_BIGNUM to be obtained dh
  */
-int wolfSSL_DH_get0_pqg(const WOLFSSL_DH *dh, const WOLFSSL_BIGNUM **p, 
+void wolfSSL_DH_get0_pqg(const WOLFSSL_DH *dh, const WOLFSSL_BIGNUM **p, 
                     const WOLFSSL_BIGNUM **q, const WOLFSSL_BIGNUM **g)
 {
     WOLFSSL_STUB("wolfSSL_DH_get0_pqg");
@@ -55355,7 +55360,6 @@ int wolfSSL_DH_get0_pqg(const WOLFSSL_DH *dh, const WOLFSSL_BIGNUM **p,
     (void)p;
     (void)q;
     (void)g;
-    return WOLFSSL_FAILURE;
 }
 #endif /* NO_WOLFSSL_STUB */
 #endif /* OPENSSL_EXTRA */
