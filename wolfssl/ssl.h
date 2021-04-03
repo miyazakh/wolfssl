@@ -212,6 +212,8 @@ typedef struct WOLFSSL_AUTHORITY_KEYID  WOLFSSL_AUTHORITY_KEYID;
 typedef struct WOLFSSL_BASIC_CONSTRAINTS WOLFSSL_BASIC_CONSTRAINTS;
 typedef struct WOLFSSL_ACCESS_DESCRIPTION WOLFSSL_ACCESS_DESCRIPTION;
 
+typedef struct WOLFSSL_CONF_CTX     WOLFSSL_CONF_CTX;
+
 #if defined(OPENSSL_ALL) || defined(OPENSSL_EXTRA) || defined(WOLFSSL_WPAS_SMALL)
 
 struct WOLFSSL_AUTHORITY_KEYID {
@@ -3668,6 +3670,12 @@ struct WOLFSSL_ASN1_BIT_STRING {
     long flags;
 };
 
+struct WOLFSSL_CONF_CTX {
+    unsigned int flags;
+    WOLFSSL_CTX* ctx;
+    WOLFSSL* ssl;
+};
+
 WOLFSSL_API WOLFSSL_X509_NAME_ENTRY *wolfSSL_X509_NAME_get_entry(WOLFSSL_X509_NAME *name, int loc);
 #endif /* OPENSSL_EXTRA || WOLFSSL_WPAS_SMALL */
 
@@ -4236,8 +4244,20 @@ WOLFSSL_API int wolfSSL_set_ephemeral_key(WOLFSSL* ssl, int keyAlgo,
     const char* key, unsigned int keySz, int format);
 #endif
 
-
-
+#if defined(OPENSSL_EXTRA)
+WOLFSSL_API WOLFSSL_CONF_CTX* wolfSSL_CONF_CTX_new(void);
+WOLFSSL_API void wolfSSL_CONF_CTX_free(WOLFSSL_CONF_CTX* cctx);
+WOLFSSL_API void wolfSSL_CONF_CTX_set_ssl_ctx(WOLFSSL_CONF_CTX* cctx, WOLFSSL_CTX *ctx);
+WOLFSSL_API unsigned int wolfSSL_CONF_CTX_set_flags(WOLFSSL_CONF_CTX* cctx, unsigned int flags);
+WOLFSSL_API int wolfSSL_CONF_CTX_finish(WOLFSSL_CONF_CTX* cctx);
+WOLFSSL_API int wolfSSL_CONF_cmd(WOLFSSL_CONF_CTX* cctx, const char* cmd, const char* value);
+#ifdef HAVE_EX_DATA
+WOLFSSL_API int wolfSSL_CRYPTO_get_ex_new_index(int class_index, long argl, void *argp,
+                                           WOLFSSL_CRYPTO_EX_new* new_func,
+                                           WOLFSSL_CRYPTO_EX_dup* dup_func,
+                                           WOLFSSL_CRYPTO_EX_free* free_func);
+#endif
+#endif /* OPENSSL_EXTRA */
 #ifdef __cplusplus
     }  /* extern "C" */
 #endif

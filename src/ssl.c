@@ -55220,6 +55220,144 @@ int wolfSSL_CTX_set_ecdh_auto(WOLFSSL_CTX* ctx, int onoff)
     (void)onoff;
     return WOLFSSL_SUCCESS;
 }
+/**
+ * Allocate WOLFSSL_CONF_CTX instance
+ * @return pointer to WOLFSSL_CONF_CTX structure on success and NULL on fail
+ */
+WOLFSSL_CONF_CTX* wolfSSL_CONF_CTX_new(void)
+{
+    WOLFSSL_CONF_CTX* cctx;
+    
+    WOLFSSL_ENTER("wolfSSL_CONF_CTX_new");
+    
+    cctx = (WOLFSSL_CONF_CTX*)XMALLOC(sizeof(WOLFSSL_CONF_CTX), NULL, 
+                                                    DYNAMIC_TYPE_OPENSSL);
+    if (!cctx) {
+        WOLFSSL_MSG("malloc error");
+        return NULL;
+    }
+    XMEMSET(cctx, 0, sizeof(WOLFSSL_CONF_CTX));
+    
+    return cctx;
+}
+/**
+ * Release WOLFSSL_CONF_CTX instance
+ * @param cctx a pointer to WOLFSSL_CONF_CTX structure to be freed
+ * @return none
+ */
+void wolfSSL_CONF_CTX_free(WOLFSSL_CONF_CTX* cctx)
+{
+    WOLFSSL_ENTER("wolfSSL_CONF_CTX_free");
+    
+    if (cctx) {
+        XFREE(cctx, NULL, DYNAMIC_TYPE_OPENSSL);
+    }
+}
+/**
+ * Release WOLFSSL_CONF_CTX instance
+ * @param cctx a pointer to WOLFSSL_CONF_CTX structure to set a pointer
+ *             to WOLFSSL_CTX
+ * @param ctx  a pointer to WOLFSSL_CTX structure to be set
+ * @return none
+ */
+void wolfSSL_CONF_CTX_set_ssl_ctx(WOLFSSL_CONF_CTX* cctx, WOLFSSL_CTX *ctx)
+{
+    WOLFSSL_ENTER("wolfSSL_CONF_CTX_set_ssl_ctx");
+    
+    //sanity check
+    if (cctx == NULL) {
+        WOLFSSL_MSG("cctx is null");
+        return;
+    }
+    
+    if (ctx != NULL) {
+        cctx->ctx = ctx;
+    } else {
+        cctx->ctx = NULL;
+    }
+}
+/**
+ * set flag value into WOLFSSL_CONF_CTX
+ * @param cctx  a pointer to WOLFSSL_CONF_CTX structure to be set
+ * @param flags falg value to be OR'sd
+ * @return OR'd flag value, otherwise 0
+ */
+unsigned int wolfSSL_CONF_CTX_set_flags(WOLFSSL_CONF_CTX* cctx, unsigned int flags)
+{
+    //sanity check
+    if (cctx == NULL) return 0;
+    
+    cctx->flags |= flags;
+    return cctx->flags;
+}
+#ifndef NO_WOLFSSL_STUB
+/**
+ * finish configuration command operation
+ * @param cctx  a pointer to WOLFSSL_CONF_CTX structure to be set
+ * @return WOLFSSL_FAILURE for now
+ */
+int wolfSSL_CONF_CTX_finish(WOLFSSL_CONF_CTX* cctx)
+{
+    WOLFSSL_STUB("wolfSSL_CONF_CTX_finish");
+    (void)cctx;
+    return WOLFSSL_FAILURE;
+}
+/**
+ * send configuration command
+ * @param cctx  a pointer to WOLFSSL_CONF_CTX structure
+ * @param cmd   configuration command
+ * @param value arguments for cmd
+ * @return WOLFSSL_FAILURE for now
+ */
+int wolfSSL_CONF_cmd(WOLFSSL_CONF_CTX* cctx, const char* cmd, const char* value)
+{
+    WOLFSSL_STUB("wolfSSL_CONF_cmd");
+    (void)cctx;
+    (void)cmd;
+    (void)value;
+    return WOLFSSL_FAILURE;
+}
+
+/**
+ * 
+ * @param s  a pointer to WOLFSSL_SESSION structure
+ * @return WOLFSSL_FAILURE for now
+ */
+#ifdef HAVE_EX_DATA
+int wolfSSL_CRYPTO_get_ex_new_index(int class_index, long argl, void *argp,
+                                           WOLFSSL_CRYPTO_EX_new* new_func,
+                                           WOLFSSL_CRYPTO_EX_dup* dup_func,
+                                           WOLFSSL_CRYPTO_EX_free* free_func)
+{
+    WOLFSSL_STUB("wolfSSL_CRYPTO_get_ex_new_index");
+    (void)class_index;
+    (void)argl;
+    (void)argp;
+    (void)new_func;
+    (void)dup_func;
+    (void)free_func;
+    return WOLFSSL_FAILURE;
+}
+#endif
+
+/**
+ * 
+ * @param store a pointer to WOLFSSL_X509_STORE structure
+ * @param idx   
+ * @param data  
+ * @return WOLFSSL_FAILURE for now
+ */
+int wolfSSL_DH_get0_pqg(const WOLFSSL_DH *dh, const WOLFSSL_BIGNUM **p, 
+                    const WOLFSSL_BIGNUM **q, const WOLFSSL_BIGNUM **g)
+{
+    WOLFSSL_STUB("wolfSSL_DH_get0_pqg");
+    (void)dh;
+    (void)p;
+    (void)q;
+    (void)g;
+    return WOLFSSL_FAILURE;
+}
+#endif /* NO_WOLFSSL_STUB */
 #endif /* OPENSSL_EXTRA */
 
 #endif /* !WOLFCRYPT_ONLY */

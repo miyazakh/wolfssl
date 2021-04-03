@@ -164,6 +164,7 @@ typedef STACK_OF(ACCESS_DESCRIPTION) AUTHORITY_INFO_ACCESS;
 #define set_ex_data                     wolfSSL_CRYPTO_set_ex_data
 #define get_ex_data                     wolfSSL_CRYPTO_get_ex_data
 #define CRYPTO_memcmp                   wolfSSL_CRYPTO_memcmp
+#define CRYPTO_get_ex_new_index         wolfSSL_CRYPTO_get_ex_new_index
 
 /* this function was used to set the default malloc, free, and realloc */
 #define CRYPTO_malloc_init() 0 /* CRYPTO_malloc_init is not needed */
@@ -1090,6 +1091,7 @@ wolfSSL_X509_STORE_set_verify_cb((WOLFSSL_X509_STORE *)(s), (WOLFSSL_X509_STORE_
 #define SSL_CTRL_GET_TOTAL_RENEGOTIATIONS         12
 #define SSL_CTRL_SET_TMP_DH                       3
 #define SSL_CTRL_SET_TMP_ECDH                     4
+#define SSL_CTRL_SET_SESS_CACHE_MODE              44
 #define SSL_CTRL_SET_TLSEXT_DEBUG_ARG             57
 #define SSL_CTRL_SET_TLSEXT_STATUS_REQ_TYPE       65
 #define SSL_CTRL_GET_TLSEXT_STATUS_REQ_EXTS       66
@@ -1098,6 +1100,12 @@ wolfSSL_X509_STORE_set_verify_cb((WOLFSSL_X509_STORE *)(s), (WOLFSSL_X509_STORE_
 #define SSL_CTRL_SET_TLSEXT_STATUS_REQ_IDS        69
 #define SSL_CTRL_GET_TLSEXT_STATUS_REQ_OCSP_RESP  70
 #define SSL_CTRL_SET_TLSEXT_STATUS_REQ_OCSP_RESP  71
+#define SSL_CTRL_SET_GROUPS                       91
+#define SSL_CTRL_GET_PEER_TMP_KEY                 109
+#define SSL_CTRL_GET_SERVER_TMP_KEY               SSL_CTRL_GET_PEER_TMP_KEY
+#define SSL_CTRL_SET_MIN_PROTO_VERSION            123
+#define SSL_CTRL_SET_MAX_PROTO_VERSION            124
+#define SSL_CTRL_SET_CURVES                       SSL_CTRL_SET_GROUPS
 
 #define SSL_CTRL_EXTRA_CHAIN_CERT               14
 #define SSL_CTRL_OPTIONS                        32
@@ -1126,6 +1134,16 @@ wolfSSL_X509_STORE_set_verify_cb((WOLFSSL_X509_STORE *)(s), (WOLFSSL_X509_STORE_
 #define TLS1_3_VERSION                   0x0304
 #define DTLS1_VERSION                    0xFEFF
 #define DTLS1_2_VERSION                  0xFEFD
+
+#define OPENSSL_INIT_LOAD_SSL_STRINGS    0x00200000L
+#define OPENSSL_INIT_LOAD_CRYPTO_STRINGS 0x00000002L
+
+#define CRYPTO_EX_INDEX_SSL              0
+#define TLS_ANY_VERSION                  0x10000
+#define DTLS1_2_VERSION                  0xFEFD
+#define DTLS_MAX_VERSION                 DTLS1_2_VERSION
+
+#define SSL_CONF_FLAG_FILE               0x2
 
 #if defined(HAVE_STUNNEL) || defined(WOLFSSL_NGINX) || defined(OPENSSL_EXTRA) \
                                                          || defined(OPENSSL_ALL)
@@ -1361,6 +1379,15 @@ wolfSSL_X509_STORE_set_verify_cb((WOLFSSL_X509_STORE *)(s), (WOLFSSL_X509_STORE_
 #ifndef NO_WOLFSSL_STUB
 #define OBJ_create_objects(...)
 #endif
+
+typedef WOLFSSL_CONF_CTX SSL_CONF_CTX;
+
+#define SSL_CONF_CTX_new                wolfSSL_CONF_CTX_new
+#define SSL_CONF_CTX_free               wolfSSL_CONF_CTX_free
+#define SSL_CONF_CTX_set_ssl_ctx        wolfSSL_CONF_CTX_set_ssl_ctx
+#define SSL_CONF_CTX_set_flags          wolfSSL_CONF_CTX_set_flags
+#define SSL_CONF_CTX_finish             wolfSSL_CONF_CTX_finish
+#define SSL_CONF_cmd                    wolfSSL_CONF_cmd
 
 #ifdef __cplusplus
     } /* extern "C" */
