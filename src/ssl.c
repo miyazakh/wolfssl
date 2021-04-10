@@ -5819,7 +5819,7 @@ int ProcessBuffer(WOLFSSL_CTX* ctx, const unsigned char* buff,
 
                 /* PKCS8 decrypt */
                 ret = ToTraditionalEnc(der->buffer, der->length,
-                                       password, passwordSz, &algId, &crvId);
+                                       password, passwordSz, &algId, &crvId, 1);
                 if (ret >= 0) {
                     der->length = ret;
                 }
@@ -5846,10 +5846,8 @@ int ProcessBuffer(WOLFSSL_CTX* ctx, const unsigned char* buff,
 #ifdef OPENSSL_EXTRA
             /* Reaching this point probably means that the
              * decryption password is wrong */
-            if (info->passwd_cb) {
-                printf("error here %d\n", EVP_R_BAD_DECRYPT);
+            if (info->passwd_cb)
                 EVPerr(0, EVP_R_BAD_DECRYPT);
-            }
 #endif
             return WOLFSSL_BAD_FILE;
         }
@@ -53419,7 +53417,7 @@ WOLFSSL_EVP_PKEY* wolfSSL_d2i_PKCS8PrivateKey_bio(WOLFSSL_BIO* bio,
             return NULL;
         }
 
-        ret = ToTraditionalEnc(der, len, password, passwordSz, &algId, &crvId);
+        ret = ToTraditionalEnc(der, len, password, passwordSz, &algId, &crvId, 1);
         if (ret < 0) {
             XFREE(der, bio->heap, DYNAMIC_TYPE_OPENSSL);
             return NULL;

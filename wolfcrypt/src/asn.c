@@ -11558,7 +11558,7 @@ int PemToDer(const unsigned char* buff, long longSz, int type,
             if (header == BEGIN_ENC_PRIV_KEY) {
             #ifndef NO_PWDBASED
                 ret = ToTraditionalEnc(der->buffer, der->length,
-                                       password, passwordSz, &algId, &crvId);
+                                       password, passwordSz, &algId, &crvId, 0);
 
                 if (ret >= 0) {
                     der->length = ret;
