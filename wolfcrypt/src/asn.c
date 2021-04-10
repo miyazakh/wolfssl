@@ -2766,13 +2766,14 @@ int wc_RsaPrivateKeyDecode(const byte* input, word32* inOutIdx, RsaKey* key,
 #endif /* NO_RSA */
 
 #if defined(HAVE_PKCS8) || defined(HAVE_PKCS12)
-
+static int CheckCurve(word32 oid);
 /* Remove PKCS8 header, place inOutIdx at beginning of traditional,
  * return traditional length on success, negative on error */
 int ToTraditionalInline_ex(const byte* input, word32* inOutIdx, word32 sz,
-                           word32* algId)
+                           word32* algId, word32* crvId)
 {
     word32 idx;
+    word32 oidSum;
     int    version, length;
     int    ret;
     byte   tag;
@@ -2796,10 +2797,18 @@ int ToTraditionalInline_ex(const byte* input, word32* inOutIdx, word32 sz,
     idx = idx - 1; /* reset idx after finding tag */
 
     if (tag == ASN_OBJECT_ID) {
-        if (SkipObjectId(input, &idx, sz) < 0)
-            return ASN_PARSE_E;
+        ret = GetObjectId(input, &idx, &oidSum, oidIgnoreType, sz);
+        if (ret == 0) {
+            if ((ret = CheckCurve(oidSum)) < 0)
+                ret = ECC_CURVE_OID_E;
+            else {
+                if (crvId != NULL)
+                 *crvId = ret;
+                ret = 0;
+            }
+        }
     }
-
+    
     ret = GetOctetString(input, &idx, &length, sz);
     if (ret < 0) {
         if (ret == BUFFER_E)
@@ -2816,12 +2825,14 @@ int ToTraditionalInline_ex(const byte* input, word32* inOutIdx, word32 sz,
 int ToTraditionalInline(const byte* input, word32* inOutIdx, word32 sz)
 {
     word32 oid;
-
-    return ToTraditionalInline_ex(input, inOutIdx, sz, &oid);
+    word32 cvid = 0;
+    
+    return ToTraditionalInline_ex(input, inOutIdx, sz, &oid, &cvid);
 }
 
 /* Remove PKCS8 header, move beginning of traditional to beginning of input */
-int ToTraditional_ex(byte* input, word32 sz, word32* algId)
+int ToTraditional_ex(byte* input, word32 sz, word32* algId, word32* crvId, 
+                                                                byte remove)
 {
     word32 inOutIdx = 0;
     int    length;
@@ -2829,14 +2840,15 @@ int ToTraditional_ex(byte* input, word32 sz, word32* algId)
     if (input == NULL)
         return BAD_FUNC_ARG;
 
-    length = ToTraditionalInline_ex(input, &inOutIdx, sz, algId);
+    length = ToTraditionalInline_ex(input, &inOutIdx, sz, algId, crvId);
     if (length < 0)
         return length;
 
     if (length + inOutIdx > sz)
         return BUFFER_E;
-
-    XMEMMOVE(input, input + inOutIdx, length);
+    /* specified remove equals to 1, removes header */
+    if (remove == 1)
+        XMEMMOVE(input, input + inOutIdx, length);
 
     return length;
 }
@@ -2844,8 +2856,9 @@ int ToTraditional_ex(byte* input, word32 sz, word32* algId)
 int ToTraditional(byte* input, word32 sz)
 {
     word32 oid;
-
-    return ToTraditional_ex(input, sz, &oid);
+    word32 crvid = 0;
+    
+    return ToTraditional_ex(input, sz, &oid, &crvid, 1);
 }
 
 #endif /* HAVE_PKCS8 || HAVE_PKCS12 */
@@ -2860,11 +2873,12 @@ int wc_GetPkcs8TraditionalOffset(byte* input, word32* inOutIdx, word32 sz)
 {
     int length;
     word32 algId;
-
+    word32 crvId = 0;
+    
     if (input == NULL || inOutIdx == NULL || (*inOutIdx > sz))
         return BAD_FUNC_ARG;
 
-    length = ToTraditionalInline_ex(input, inOutIdx, sz, &algId);
+    length = ToTraditionalInline_ex(input, inOutIdx, sz, &algId, &crvId);
 
     return length;
 }
@@ -2903,7 +2917,11 @@ int wc_CreatePKCS8Key(byte* out, word32* outSz, byte* key, word32 keySz,
         word32 tmpSz  = 0;
         word32 sz;
 
-
+        word32 algId = 0;
+        word32 crvId = 0;
+        word32 idx = 0;
+        int ret;
+        
         /* If out is NULL then return the max size needed
          * + 2 for ASN_OBJECT_ID and ASN_OCTET_STRING tags */
         if (out == NULL && outSz != NULL) {
@@ -2923,7 +2941,16 @@ int wc_CreatePKCS8Key(byte* out, word32* outSz, byte* key, word32 keySz,
         if (key == NULL || out == NULL || outSz == NULL) {
             return BAD_FUNC_ARG;
         }
-
+        
+        if ((ret = ToTraditionalInline_ex((const byte*)key, &idx, (word32)keySz,
+                                                        &algId, &crvId)) > 0) {
+            WOLFSSL_MSG("Found PKCS8 header");
+            key += idx;
+            keySz -= idx;
+        } else {
+            idx = 0;
+        }
+        
         /* check the buffer has enough room for largest possible size */
         if (curveOID != NULL) {
             if (*outSz < (keySz + MAX_SEQ_SZ + MAX_VERSION_SZ + MAX_ALGO_SZ
@@ -11274,6 +11301,7 @@ int PemToDer(const unsigned char* buff, long longSz, int type,
     DerBuffer*  der;
 #if defined(HAVE_PKCS8) || defined(WOLFSSL_ENCRYPTED_KEYS)
     word32      algId = 0;
+    word32      crvId = 0;
     #if defined(WOLFSSL_ENCRYPTED_KEYS) && !defined(NO_DES3) && !defined(NO_WOLFSSL_SKIP_TRAILING_PAD)
         int     padVal = 0;
     #endif
@@ -11485,8 +11513,9 @@ int PemToDer(const unsigned char* buff, long longSz, int type,
     {
     #ifdef HAVE_PKCS8
         /* pkcs8 key, convert and adjust length */
-        if ((ret = ToTraditional_ex(der->buffer, der->length, &algId)) > 0) {
-            der->length = ret;
+        if ((ret = ToTraditional_ex(der->buffer, der->length, 
+                                                    &algId, &crvId, 0)) > 0) {
+            /* der->length = ret; */
             if (keyFormat) {
                 *keyFormat = algId;
             }
@@ -11529,7 +11558,7 @@ int PemToDer(const unsigned char* buff, long longSz, int type,
             if (header == BEGIN_ENC_PRIV_KEY) {
             #ifndef NO_PWDBASED
                 ret = ToTraditionalEnc(der->buffer, der->length,
-                                       password, passwordSz, &algId);
+                                       password, passwordSz, &algId, &crvId);
 
                 if (ret >= 0) {
                     der->length = ret;
@@ -16371,8 +16400,8 @@ int DecodeECC_DSA_Sig(const byte* sig, word32 sigLen, mp_int* r, mp_int* s)
 #endif
 
 #ifdef HAVE_ECC
-int wc_EccPrivateKeyDecode(const byte* input, word32* inOutIdx, ecc_key* key,
-                        word32 inSz)
+static int wc_EccPrivateKeyDecode_ex(const byte* input, word32* inOutIdx, ecc_key* key,
+                        word32 inSz, word32 crvId)
 {
     word32 oidSum;
     int    version, length;
@@ -16445,6 +16474,10 @@ int wc_EccPrivateKeyDecode(const byte* input, word32* inOutIdx, ecc_key* key,
                     }
                 }
             }
+        } else {
+            if (crvId != ECC_CURVE_DEF) {
+                curve_id = crvId;
+            }
         }
     }
 
@@ -16497,6 +16530,43 @@ int wc_EccPrivateKeyDecode(const byte* input, word32* inOutIdx, ecc_key* key,
     return ret;
 }
 
+int wc_EccPrivateKeyDecode(const byte* input, word32* inOutIdx, ecc_key* key,
+                        word32 inSz)
+{
+    int ret;
+    word32 algId = 0;
+    word32 crvId = ECC_CURVE_DEF;
+    
+    if ((ret = ToTraditionalInline_ex((const byte*)(input), inOutIdx, (word32)inSz,
+                                                        &algId, &crvId)) > 0) {
+        key->haspkcs8header = 1;
+    } else {
+        WOLFSSL_MSG("key doesn't have PKCS8 header");
+    }
+    
+    return wc_EccPrivateKeyDecode_ex(input, inOutIdx, key, inSz, crvId);
+}
+
+int wc_EccPKCS8PrivateKeyDecode(const byte* input, word32* inOutIdx, ecc_key* key,
+                        word32 inSz)
+{
+    int ret;
+    word32 algId = 0;
+    word32 crvId = 0;
+
+    if (input == NULL || inOutIdx == NULL || key == NULL || inSz == 0)
+        return BAD_FUNC_ARG;
+        
+    if ((ret = ToTraditionalInline_ex((const byte*)(input), inOutIdx, (word32)inSz,
+                                                        &algId, &crvId)) > 0) {
+        key->haspkcs8header = 1;
+        return wc_EccPrivateKeyDecode_ex(input, inOutIdx, key, inSz, crvId);
+    } else {
+        WOLFSSL_MSG("key doesn't have PKCS8 header");
+        return BAD_FUNC_ARG;
+    }
+
+}
 
 #ifdef WOLFSSL_CUSTOM_CURVES
 static void ByteToHex(byte n, char* str)
@@ -16823,15 +16893,16 @@ int wc_EccPublicKeyDecode(const byte* input, word32* inOutIdx,
 }
 
 #if defined(HAVE_ECC_KEY_EXPORT) && !defined(NO_ASN_CRYPT)
+
 /* build DER formatted ECC key, include optional public key if requested,
  * return length on success, negative on error */
-static int wc_BuildEccKeyDer(ecc_key* key, byte* output, word32 *inLen,
-                             int pubIn)
+static int wc_BuildEccKeyDer_ex(ecc_key* key, byte* output, word32 *inLen,
+                             int pubIn, byte skipcrv)
 {
     byte   curve[MAX_ALGO_SZ+2];
     byte   ver[MAX_VERSION_SZ];
     byte   seq[MAX_SEQ_SZ];
-    int    ret, totalSz, curveSz, verSz;
+    int    ret, totalSz, curveSz = 0, verSz;
     int    privHdrSz  = ASN_ECC_HEADER_SZ;
     int    pubHdrSz   = ASN_ECC_CONTEXT_SZ + ASN_ECC_HEADER_SZ;
 #ifdef WOLFSSL_NO_MALLOC
@@ -16849,15 +16920,16 @@ static int wc_BuildEccKeyDer(ecc_key* key, byte* output, word32 *inLen,
         return BAD_FUNC_ARG;
 
     /* curve */
-    curve[curveidx++] = ECC_PREFIX_0;
-    curveidx++ /* to put the size after computation */;
-    curveSz = SetCurve(key, curve+curveidx);
-    if (curveSz < 0)
-        return curveSz;
-    /* set computed size */
-    curve[1] = (byte)curveSz;
-    curveidx += curveSz;
-
+    if (!skipcrv) {
+        curve[curveidx++] = ECC_PREFIX_0;
+        curveidx++ /* to put the size after computation */;
+        curveSz = SetCurve(key, curve+curveidx);
+        if (curveSz < 0)
+            return curveSz;
+        /* set computed size */
+        curve[1] = (byte)curveSz;
+        curveidx += curveSz;
+    }
     /* private */
     privSz = key->dp->size;
 
@@ -16977,10 +17049,11 @@ static int wc_BuildEccKeyDer(ecc_key* key, byte* output, word32 *inLen,
     XFREE(prv, key->heap, DYNAMIC_TYPE_TMP_BUFFER);
 #endif
 
-    /* curve */
-    XMEMCPY(output + idx, curve, curveidx);
-    idx += curveidx;
-
+    if (!skipcrv) {
+        /* curve */
+        XMEMCPY(output + idx, curve, curveidx);
+        idx += curveidx;
+    }
     /* pubIn */
     if (pubIn) {
         XMEMCPY(output + idx, pub, pubidx);
@@ -16992,7 +17065,11 @@ static int wc_BuildEccKeyDer(ecc_key* key, byte* output, word32 *inLen,
 
     return totalSz;
 }
-
+static int wc_BuildEccKeyDer(ecc_key* key, byte* output, word32 *inLen,
+                             int pubIn)
+{
+    return wc_BuildEccKeyDer_ex(key, output, inLen, pubIn, 0);
+}
 /* Write a Private ecc key, including public to DER format,
  * length on success else < 0 */
 int wc_EccKeyToDer(ecc_key* key, byte* output, word32 inLen)
@@ -17064,7 +17141,7 @@ static int eccToPKCS8(ecc_key* key, byte* output, word32* outLen,
 #endif
     XMEMSET(tmpDer, 0, ECC_BUFSIZE);
 
-    tmpDerSz = wc_BuildEccKeyDer(key, tmpDer, &sz, includePublic);
+    tmpDerSz = wc_BuildEccKeyDer_ex(key, tmpDer, &sz, includePublic, 1/* skip crv*/);
     if (tmpDerSz < 0) {
     #ifndef WOLFSSL_NO_MALLOC
         XFREE(tmpDer, key->heap, DYNAMIC_TYPE_TMP_BUFFER);
