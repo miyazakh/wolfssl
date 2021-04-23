@@ -1403,6 +1403,8 @@ wolfSSL_X509_STORE_set_verify_cb((WOLFSSL_X509_STORE *)(s), (WOLFSSL_X509_STORE_
 #define OBJ_create_objects(...)
 #endif
 
+#define SSL_set_psk_use_session_callback    wolfSSL_set_psk_use_session_callback
+#define SSL_SESSION_is_resumable    wolfSSL_SESSION_is_resumable
 typedef WOLFSSL_CONF_CTX SSL_CONF_CTX;
 
 #define SSL_CONF_CTX_new                wolfSSL_CONF_CTX_new
@@ -1412,8 +1414,6 @@ typedef WOLFSSL_CONF_CTX SSL_CONF_CTX;
 #define SSL_CONF_CTX_finish             wolfSSL_CONF_CTX_finish
 #define SSL_CONF_cmd                    wolfSSL_CONF_cmd
 
-#define SSL_set_psk_use_session_callback    wolfSSL_set_psk_use_session_callback
-#define SSL_SESSION_is_resumable    wolfSSL_SESSION_is_resumable
 #ifdef __cplusplus
     } /* extern "C" */
 #endif

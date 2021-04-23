@@ -18119,6 +18119,7 @@ WOLFSSL_TEST_SUBROUTINE int openssl_test(void)
     /* test malloc / free , 10 is an arbitrary amount of memory chosen */
     {
         byte* p;
+
         p = (byte*)CRYPTO_malloc(10, "", 0);
 
         if (p == NULL) {
