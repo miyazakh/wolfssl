@@ -8212,7 +8212,7 @@ WOLFSSL_EVP_PKEY* wolfSSL_d2i_PrivateKey(int type, WOLFSSL_EVP_PKEY** out,
     word32 idx = 0;
     int    ret;
     word32 algId;
-    word32 crvId = 0;
+    word32 crvId;
     
     WOLFSSL_ENTER("wolfSSL_d2i_PrivateKey");
 
@@ -53417,7 +53417,8 @@ WOLFSSL_EVP_PKEY* wolfSSL_d2i_PKCS8PrivateKey_bio(WOLFSSL_BIO* bio,
             return NULL;
         }
 
-        ret = ToTraditionalEnc(der, len, password, passwordSz, &algId, &crvId, 1);
+        ret = ToTraditionalEnc(der, len, password, passwordSz, 
+                                                        &algId, &crvId, 1);
         if (ret < 0) {
             XFREE(der, bio->heap, DYNAMIC_TYPE_OPENSSL);
             return NULL;
@@ -53448,7 +53449,7 @@ WOLFSSL_EVP_PKEY* wolfSSL_d2i_AutoPrivateKey(WOLFSSL_EVP_PKEY** pkey,
     int cnt = 0;
     int type;
     word32 algId;
-    word32 crvId = 0;
+    word32 crvId;
     word32 keyLen = (word32)length;
 
     /* Take off PKCS#8 wrapper if found. */

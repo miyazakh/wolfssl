@@ -1009,7 +1009,7 @@ int wc_PKCS12_parse(WC_PKCS12* pkcs12, const char* psw,
     int ret, pswSz;
     word32 algId;
     word32 crvId;
-
+    
     WOLFSSL_ENTER("wc_PKCS12_parse");
 
     if (pkcs12 == NULL || psw == NULL || cert == NULL || certSz == NULL ||
