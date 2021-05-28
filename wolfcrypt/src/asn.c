@@ -2816,14 +2816,11 @@ int ToTraditionalInline_ex2(const byte* input, word32* inOutIdx, word32 sz,
 
     if (tag == ASN_OBJECT_ID) {
         #ifdef HAVE_ECC
-        ret = GetObjectId(input, &idx, &oidSum, oidCurveType, sz);
-        if (ret == 0) {
-            if ((ret = CheckCurve(oidSum)) < 0){
-                WOLFSSL_MSG("Not found corresponding Curve");
-            } else {
-                if (crvId != NULL)
-                 *crvId = ret;
-            }
+        if(GetObjectId(input, &idx, &oidSum, oidCurveType, sz) < 0)
+            return ASN_OBJECT_ID_E;
+         else {
+            if (crvId != NULL)
+                *crvId = CheckCurve(oidSum);
         }
         #else
         if (SkipObjectId(input, &idx, sz) < 0)
@@ -11586,7 +11583,7 @@ int PemToDer(const unsigned char* buff, long longSz, int type,
             /* convert and adjust length */
             if (header == BEGIN_ENC_PRIV_KEY) {
             #ifndef NO_PWDBASED
-                ret = ToTraditionalEnc2(der->buffer, der->length,
+                ret = ToTraditionalEnc_ex(der->buffer, der->length,
                                        password, passwordSz, 
                                        &algId, &crvId, 0/*no rm header*/);
 
