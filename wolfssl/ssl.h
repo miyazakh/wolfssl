@@ -4422,12 +4422,6 @@ WOLFSSL_API int wolfSSL_get_ephemeral_key(WOLFSSL* ssl, int keyAlgo,
 #endif
 
 #if defined(OPENSSL_EXTRA)
-WOLFSSL_API WOLFSSL_CONF_CTX* wolfSSL_CONF_CTX_new(void);
-WOLFSSL_API void wolfSSL_CONF_CTX_free(WOLFSSL_CONF_CTX* cctx);
-WOLFSSL_API void wolfSSL_CONF_CTX_set_ssl_ctx(WOLFSSL_CONF_CTX* cctx, WOLFSSL_CTX *ctx);
-WOLFSSL_API unsigned int wolfSSL_CONF_CTX_set_flags(WOLFSSL_CONF_CTX* cctx, unsigned int flags);
-WOLFSSL_API int wolfSSL_CONF_CTX_finish(WOLFSSL_CONF_CTX* cctx);
-WOLFSSL_API int wolfSSL_CONF_cmd(WOLFSSL_CONF_CTX* cctx, const char* cmd, const char* value);
 WOLFSSL_API int wolfSSL_EVP_PKEY_param_check(WOLFSSL_EVP_PKEY_CTX* ctx);
 WOLFSSL_API void wolfSSL_CTX_set_security_level(WOLFSSL_CTX* ctx, int level);
 WOLFSSL_API int wolfSSL_CTX_get_security_level(const WOLFSSL_CTX* ctx);
