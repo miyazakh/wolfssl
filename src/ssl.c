@@ -12180,7 +12180,7 @@ static char* buildEnabledCipherList(WOLFSSL_CTX* ctx, Suites* suites,
         }
     }
     
-    len += listsz + 1;
+    len += listsz + 2;
     
     /* build string */
     if (len > 0) {
