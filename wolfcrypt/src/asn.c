@@ -4280,14 +4280,33 @@ exit_dc:
 
 /* Remove Encrypted PKCS8 header, move beginning of traditional to beginning
    of input */
-int ToTraditionalEnc(byte* input, word32 sz, const char* password,
+int ToTraditionalEnc(byte* input, word32 sz,const char* password,
                      int passwordSz, word32* algId)
 {
-    int ret;
+    word32 crvId;
+    (void) crvId;
+    return ToTraditionalEnc_ex(input, sz, password, passwordSz, algId, &crvId, 1);
+}
+
+/* if removehd is set 1, otherwise only returns decrypted content length.   */
+int ToTraditionalEnc_ex(byte* input, word32 sz,const char* password,
+                     int passwordSz, word32* algId, word32* crvId, byte removehd)
+{
+    int ret, length;
+    word32 inOutIdx = 0;
 
     ret = wc_DecryptPKCS8Key(input, sz, password, passwordSz);
     if (ret > 0) {
-        ret = ToTraditional_ex(input, ret, algId);
+        ret = ToTraditional_ex2(input, ret, algId, crvId, removehd);
+        if (removehd == 0) {
+            /* retrieve decrypted content length */
+            inOutIdx = 0;
+            if (GetSequence(input, &inOutIdx, &length, length) < 0) {
+                ret = ASN_PARSE_E;
+            } else {
+                ret  = length + inOutIdx;
+            }
+        }
     }
 
     return ret;
