@@ -3157,7 +3157,7 @@ THREAD_RETURN WOLFSSL_THREAD server_test(void* args)
                                                    | WOLFSSL_OCSP_URL_OVERRIDE);
             }
             else
-                wolfSSL_CTX_EnableOCSP(ctx, WOLFSSL_OCSP_NO_NONCE);
+                wolfSSL_CTX_EnableOCSP(ctx, WOLFSSL_OCSP_CHECKALL);
         }
 #ifndef NO_RSA
     /* All the OCSP Stapling test certs are RSA. */
