@@ -3,7 +3,7 @@ name: stunnel Tests
 # START OF COMMON SECTION
 on:
   push:
-    branches: [ 'master', 'main', 'release/**' ]
+    branches: [ 'master', 'main', 'release/**', 'debug-*' ]
   pull_request:
     branches: [ '*' ]
 
@@ -15,7 +15,7 @@ concurrency:
 jobs:
   build_wolfssl:
     name: Build wolfSSL
-    if: github.repository_owner == 'wolfssl'
+    if: github.repository_owner == 'wolfssl' || startsWith(github.ref_name, 'debug-') || startsWith(github.head_ref, 'debug-')
     # Just to keep it the same as the testing target
     runs-on: ubuntu-22.04
     # This should be a safe limit for the tests to run.
@@ -27,6 +27,13 @@ jobs:
           path: wolfssl
           configure: --enable-stunnel
           install: true
+
+      - name: Debug refs
+        run : |
+            echo "ref=$GITHUB_REF"
+            echo "ref_name=$GITHUB_REF_NAME"
+            echo "head_ref=$GITHUB_HEAD_REF"
+            echo "owner=${{ github.repository_owner }}"
 
       - name: tar build-dir
         run: tar -zcf build-dir.tgz build-dir
@@ -45,7 +52,7 @@ jobs:
         # List of releases to test
         ref: [ 5.67 ]
     name: ${{ matrix.ref }}
-    if: github.repository_owner == 'wolfssl'
+    if: github.repository_owner == 'wolfssl' || startsWith(github.ref_name, 'debug-') || startsWith(github.head_ref, 'debug-')
     runs-on: ubuntu-22.04
     # This should be a safe limit for the tests to run.
     timeout-minutes: 4
