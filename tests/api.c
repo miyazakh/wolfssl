@@ -34763,7 +34763,7 @@ static int error_test(void)
 
 #if defined(OPENSSL_EXTRA) || defined(OPENSSL_EXTRA_X509_SMALL) || \
     defined(HAVE_WEBSERVER) || defined(HAVE_MEMCACHED)
-        { -11, -12 },
+        { -11, -11 },
         { -15, -17 },
         { -19, -19 },
         { -26, -27 },

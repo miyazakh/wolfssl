@@ -26606,11 +26606,6 @@ const char* wolfSSL_ERR_reason_error_string(unsigned long e)
 
     int error = (int)e;
 
-    /* OpenSSL uses positive error codes */
-    if (error > 0) {
-        error = -error;
-    }
-
     /* pass to wolfCrypt */
     if ((error <= WC_SPAN1_FIRST_E && error >= WC_SPAN1_MIN_CODE_E) ||
         (error <= WC_SPAN2_FIRST_E && error >= WC_SPAN2_MIN_CODE_E))
@@ -27087,11 +27082,7 @@ const char* wolfSSL_ERR_reason_error_string(unsigned long e)
         return "HTTP Application string error";
 
     case UNSUPPORTED_PROTO_VERSION:
-        #ifdef OPENSSL_EXTRA
-        return "WRONG_SSL_VERSION";
-        #else
         return "bad/unsupported protocol version";
-        #endif
 
     case FALCON_KEY_SIZE_E:
         return "Wrong key size for Falcon.";
@@ -27172,10 +27163,23 @@ const char* wolfSSL_ERR_reason_error_string(unsigned long e)
 #if defined(OPENSSL_EXTRA) || defined(OPENSSL_EXTRA_X509_SMALL) || \
     defined(HAVE_WEBSERVER) || defined(HAVE_MEMCACHED)
 
+    /* OpenSSL uses positive error codes */
+    if (error > 0) {
+        error = -error;
+    }
+
     switch (error) {
     /* TODO: -WOLFSSL_X509_V_ERR_CERT_SIGNATURE_FAILURE. Conflicts with
      *       -WOLFSSL_ERROR_WANT_CONNECT.
      */
+    case -WOLFSSL_R_WRONG_SSL_VERSION:
+        return "WRONG_SSL_VERSION";
+
+    case -WOLFSSL_X509_V_ERR_CRL_HAS_EXPIRED:
+        return "CRL has expired";
+
+    case -WOLFSSL_X509_V_ERR_UNABLE_TO_GET_CRL:
+        return "unable to get CRL";
 
     case -WOLFSSL_X509_V_ERR_CERT_NOT_YET_VALID:
         return "certificate not yet valid";
