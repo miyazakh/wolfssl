@@ -26599,9 +26599,7 @@ int SendAlert(WOLFSSL* ssl, int severity, int type)
     defined(HAVE_WEBSERVER) || defined(HAVE_MEMCACHED)
 static const char* wolfSSL_ERR_reason_error_string_OpenSSL(unsigned long e)
 {
-    int error = (int)e;
-
-    switch (error) {
+    switch (e) {
     /* TODO: -WOLFSSL_X509_V_ERR_CERT_SIGNATURE_FAILURE. Conflicts with
      *       -WOLFSSL_ERROR_WANT_CONNECT.
      */
@@ -26652,6 +26650,7 @@ static const char* wolfSSL_ERR_reason_error_string_OpenSSL(unsigned long e)
 
     case WOLFSSL_X509_V_ERR_SUBJECT_ISSUER_MISMATCH:
         return "subject issuer mismatch";
+
     default:
         return NULL;
     }
