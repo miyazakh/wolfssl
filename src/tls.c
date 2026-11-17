@@ -17042,7 +17042,9 @@ int TLSX_PopulateExtensions(WOLFSSL* ssl, byte isServer)
                         ssl, ssl->arrays->server_hint,
                         ssl->arrays->client_identity, MAX_PSK_ID_LEN,
                         ssl->arrays->psk_key, MAX_PSK_KEY_LEN, &cipherName);
-                    if (GetCipherSuiteFromName(cipherName, &cipherSuite0,
+                    /* No cipher suite name is needed when there is no key. */
+                    if (ssl->arrays->psk_keySz != 0 &&
+                            GetCipherSuiteFromName(cipherName, &cipherSuite0,
                             &cipherSuite, NULL, NULL, &cipherSuiteFlags) != 0) {
                         return PSK_KEY_ERROR;
                     }
@@ -17052,15 +17054,18 @@ int TLSX_PopulateExtensions(WOLFSSL* ssl, byte isServer)
                         ssl->arrays->server_hint, ssl->arrays->client_identity,
                         MAX_PSK_ID_LEN, ssl->arrays->psk_key, MAX_PSK_KEY_LEN);
                 }
-                if (
-                #ifdef OPENSSL_EXTRA
-                    /* OpenSSL treats a PSK key length of 0
-                     * to indicate no PSK available.
-                     */
-                    ssl->arrays->psk_keySz == 0 ||
+                if (ssl->arrays->psk_keySz == 0) {
+                    /* A PSK key length of 0 indicates no PSK available: don't
+                     * offer a pre_shared_key and continue the handshake. This
+                     * matches OpenSSL and the client_psk_cs_cb path above.
+                     * Define WOLFSSL_PSK_NO_KEY_FATAL to fail instead. */
+                #if !defined(OPENSSL_EXTRA) && defined(WOLFSSL_PSK_NO_KEY_FATAL)
+                    ret = PSK_KEY_ERROR;
                 #endif
-                         (ssl->arrays->psk_keySz > MAX_PSK_KEY_LEN &&
-                     (int)ssl->arrays->psk_keySz != WC_NO_ERR_TRACE(USE_HW_PSK))) {
+                }
+                else if (ssl->arrays->psk_keySz > MAX_PSK_KEY_LEN &&
+                         (int)ssl->arrays->psk_keySz !=
+                             WC_NO_ERR_TRACE(USE_HW_PSK)) {
                 #ifndef OPENSSL_EXTRA
                     ret = PSK_KEY_ERROR;
                 #endif

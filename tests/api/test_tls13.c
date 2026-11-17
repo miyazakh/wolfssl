@@ -3169,6 +3169,153 @@ int test_tls13_psk_age_no_identity_oracle(void)
     return EXPECT_RESULT();
 }
 
+#if defined(WOLFSSL_TLS13) && \
+    defined(HAVE_MANUAL_MEMIO_TESTS_DEPENDENCIES_BUILD) && \
+    !defined(NO_PSK) && !defined(WOLFSSL_PSK_ONE_ID)
+static int test_tls13_psk_no_key_cb_calls = 0;
+
+/* Return no key while TLS 1.3 is being offered and a key once a TLS 1.2 PSK
+ * cipher suite has been negotiated. This is how an application that enables
+ * both protocol versions but only has a TLS 1.2 external PSK behaves. */
+static unsigned int test_tls13_psk_no_key_client_cb(WOLFSSL* ssl,
+        const char* hint, char* identity, unsigned int id_max_len,
+        unsigned char* key, unsigned int key_max_len)
+{
+    (void)hint;
+
+    test_tls13_psk_no_key_cb_calls++;
+    if (wolfSSL_GetVersion(ssl) == WOLFSSL_TLSV1_3)
+        return 0;
+
+    XSTRNCPY(identity, "Client_identity", id_max_len);
+    if (key_max_len < 32)
+        return 0;
+    XMEMSET(key, 0x20, 32);
+    return 32;
+}
+
+/* TLS 1.3 callback returning no key and leaving the cipher name unset. */
+static unsigned int test_tls13_psk_no_key_client_tls13_cb(WOLFSSL* ssl,
+        const char* hint, char* identity, unsigned int id_max_len,
+        unsigned char* key, unsigned int key_max_len, const char** ciphersuite)
+{
+    (void)ssl;
+    (void)hint;
+    (void)identity;
+    (void)id_max_len;
+    (void)key;
+    (void)key_max_len;
+    (void)ciphersuite;
+
+    test_tls13_psk_no_key_cb_calls++;
+    return 0;
+}
+
+static unsigned int test_tls13_psk_no_key_server_cb(WOLFSSL* ssl,
+        const char* id, unsigned char* key, unsigned int key_max_len)
+{
+    (void)ssl;
+
+    if (XSTRCMP(id, "Client_identity") != 0 || key_max_len < 32)
+        return 0;
+    XMEMSET(key, 0x20, 32);
+    return 32;
+}
+#endif
+
+/* A client PSK callback that returns a key length of 0 while the TLS 1.3
+ * ClientHello is built means that no external PSK is available. The client
+ * must not offer a pre_shared_key and the handshake must continue (as with
+ * OpenSSL and as with the cipher suite PSK callback). Defining
+ * WOLFSSL_PSK_NO_KEY_FATAL restores the previous behaviour: the handshake
+ * fails with PSK_KEY_ERROR. */
+int test_tls13_psk_no_key(void)
+{
+    EXPECT_DECLS;
+#if defined(WOLFSSL_TLS13) && \
+    defined(HAVE_MANUAL_MEMIO_TESTS_DEPENDENCIES_BUILD) && \
+    !defined(NO_PSK) && !defined(WOLFSSL_PSK_ONE_ID) && !defined(NO_CERTS)
+    WOLFSSL_CTX *ctx_c = NULL;
+    WOLFSSL_CTX *ctx_s = NULL;
+    WOLFSSL *ssl_c = NULL;
+    WOLFSSL *ssl_s = NULL;
+    struct test_memio_ctx test_ctx;
+    int i;
+
+    /* Both client callback kinds: client_psk_cb and client_psk_tls13_cb. */
+    for (i = 0; i < 2; i++) {
+        XMEMSET(&test_ctx, 0, sizeof(test_ctx));
+        test_tls13_psk_no_key_cb_calls = 0;
+        ExpectIntEQ(test_memio_setup(&test_ctx, &ctx_c, &ctx_s, &ssl_c,
+            &ssl_s, wolfTLSv1_3_client_method, wolfTLSv1_3_server_method), 0);
+        if (i == 0) {
+            wolfSSL_set_psk_client_callback(ssl_c,
+                test_tls13_psk_no_key_client_cb);
+        }
+        else {
+            wolfSSL_set_psk_client_tls13_callback(ssl_c,
+                test_tls13_psk_no_key_client_tls13_cb);
+        }
+        wolfSSL_set_psk_server_callback(ssl_s,
+            test_tls13_psk_no_key_server_cb);
+
+    #ifndef WOLFSSL_PSK_NO_KEY_FATAL
+        /* No PSK offered: full certificate handshake. */
+        ExpectIntEQ(test_memio_do_handshake(ssl_c, ssl_s, 10, NULL), 0);
+        ExpectIntEQ(wolfSSL_GetVersion(ssl_c), WOLFSSL_TLSV1_3);
+        ExpectNull(TLSX_Find(ssl_c->extensions, TLSX_PRE_SHARED_KEY));
+        ExpectIntEQ(wolfSSL_session_reused(ssl_c), 0);
+    #else
+        ExpectIntNE(wolfSSL_connect(ssl_c), WOLFSSL_SUCCESS);
+        ExpectIntEQ(wolfSSL_get_error(ssl_c,
+            WC_NO_ERR_TRACE(WOLFSSL_FATAL_ERROR)),
+            WC_NO_ERR_TRACE(PSK_KEY_ERROR));
+    #endif
+        ExpectIntEQ(test_tls13_psk_no_key_cb_calls, 1);
+
+        wolfSSL_free(ssl_c);
+        ssl_c = NULL;
+        wolfSSL_CTX_free(ctx_c);
+        ctx_c = NULL;
+        wolfSSL_free(ssl_s);
+        ssl_s = NULL;
+        wolfSSL_CTX_free(ctx_s);
+        ctx_s = NULL;
+    }
+
+#if !defined(WOLFSSL_NO_TLS12) && defined(BUILD_TLS_PSK_WITH_AES_128_GCM_SHA256)
+    /* Client offers TLS 1.3 and TLS 1.2, the server only does TLS 1.2 with a
+     * PSK cipher suite: the TLS 1.2 PSK handshake must succeed. */
+    XMEMSET(&test_ctx, 0, sizeof(test_ctx));
+    test_tls13_psk_no_key_cb_calls = 0;
+    ExpectIntEQ(test_memio_setup(&test_ctx, &ctx_c, &ctx_s, &ssl_c, &ssl_s,
+        wolfSSLv23_client_method, wolfTLSv1_2_server_method), 0);
+    ExpectIntEQ(wolfSSL_set_cipher_list(ssl_c,
+        "TLS13-AES128-GCM-SHA256:PSK-AES128-GCM-SHA256"), WOLFSSL_SUCCESS);
+    ExpectIntEQ(wolfSSL_set_cipher_list(ssl_s, "PSK-AES128-GCM-SHA256"),
+        WOLFSSL_SUCCESS);
+    wolfSSL_set_psk_client_callback(ssl_c, test_tls13_psk_no_key_client_cb);
+    wolfSSL_set_psk_server_callback(ssl_s, test_tls13_psk_no_key_server_cb);
+
+    #ifndef WOLFSSL_PSK_NO_KEY_FATAL
+    ExpectIntEQ(test_memio_do_handshake(ssl_c, ssl_s, 10, NULL), 0);
+    ExpectIntEQ(wolfSSL_GetVersion(ssl_c), WOLFSSL_TLSV1_2);
+    ExpectStrEQ(wolfSSL_get_cipher(ssl_c), "PSK-AES128-GCM-SHA256");
+    /* Once for the TLS 1.3 ClientHello, once for the ClientKeyExchange. */
+    ExpectIntEQ(test_tls13_psk_no_key_cb_calls, 2);
+    #else
+    ExpectIntNE(test_memio_do_handshake(ssl_c, ssl_s, 10, NULL), 0);
+    #endif
+
+    wolfSSL_free(ssl_c);
+    wolfSSL_CTX_free(ctx_c);
+    wolfSSL_free(ssl_s);
+    wolfSSL_CTX_free(ctx_s);
+#endif
+#endif
+    return EXPECT_RESULT();
+}
+
 
 #if defined(HAVE_RPK) && !defined(NO_TLS) && !defined(NO_WOLFSSL_CLIENT) && \
     !defined(NO_WOLFSSL_SERVER)
